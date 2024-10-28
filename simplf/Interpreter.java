@@ -1,18 +1,13 @@
-package simplf; 
-
-import java.util.List;
-
-import simplf.Stmt.For;
+package simplf;
 
 import java.util.ArrayList;
-
+import java.util.List;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     public Environment globals = new Environment();
     private Environment environment = globals;
 
     Interpreter() {
-
     }
 
     public void interpret(List<Stmt> stmts) {
@@ -27,7 +22,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
 
     @Override
     public Object visitExprStmt(Stmt.Expression stmt) {
-        // Evaluate the expression in the statement and return its value.
         return evaluate(stmt.expr);
     }
 
@@ -55,66 +49,55 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
 
     public void executeBlock(List<Stmt> statements, Environment newEnv) {
-    Environment previous = this.environment;
-    try {
-        this.environment = newEnv;
-        for (Stmt statement : statements) {
-            execute(statement);
+        Environment previous = this.environment;
+        try {
+            this.environment = newEnv;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
         }
-    } finally {
-        this.environment = previous;
-    }
     }
 
     @Override
     public Object visitIfStmt(Stmt.If stmt) {
-        // Evaluate the condition
         Object condition = evaluate(stmt.cond);
-        
-        // If the condition is true, execute the then branch
         if (isTruthy(condition)) {
             return execute(stmt.thenBranch);
-        } 
-        // Otherwise, execute the else branch if it exists
-        else if (stmt.elseBranch != null) {
+        } else if (stmt.elseBranch != null) {
             return execute(stmt.elseBranch);
         }
-        
-        return null; // No branch executed
+        return null;
     }
 
     @Override
     public Object visitWhileStmt(Stmt.While stmt) {
-        // Keep looping while the condition is true
         while (isTruthy(evaluate(stmt.cond))) {
-            execute(stmt.body); // Execute the body of the while loop
+            execute(stmt.body);
         }
-        return null; // No return value needed
+        return null;
     }
 
     @Override
-    public Object visitForStmt(For stmt) {
+    public Object visitForStmt(Stmt.For stmt) {
         throw new UnsupportedOperationException("For loops are not interpreted.");
     }
+
     @Override
     public Object visitFunctionStmt(Stmt.Function stmt) {
-        // Create a new SimplfFunction object
         SimplfFunction function = new SimplfFunction(stmt, environment);
-        
-        // Define the function in the current environment
         environment.define(stmt.name, stmt.name.lexeme, function);
         return null;
     }
-    
+
     @Override
     public Object visitLogicalExpr(Expr.Logical expr) {
         Object left = evaluate(expr.left);
         if (expr.op.type == TokenType.OR) {
-            if (isTruthy(left))
-                return left;
+            if (isTruthy(left)) return left;
         } else {
-            if (!isTruthy(left))
-                return left;
+            if (!isTruthy(left)) return left;
         }
         return evaluate(expr.right);
     }
@@ -198,26 +181,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     public Object visitVarExpr(Expr.Variable expr) {
         return environment.get(expr.name);
     }
-    
+
     @Override
     public Object visitCallExpr(Expr.Call expr) {
-        // Evaluate the callee (the function we're calling)
         Object callee = evaluate(expr.callee);
-        
-        // Evaluate each argument
         List<Object> arguments = new ArrayList<>();
         for (Expr arg : expr.args) {
             arguments.add(evaluate(arg));
         }
-
-        // Ensure that the callee is callable
         if (!(callee instanceof SimplfCallable)) {
             throw new RuntimeError(expr.paren, "Can only call functions and classes.");
         }
-
         SimplfCallable function = (SimplfCallable) callee;
-
-        // Call the function with the interpreter and arguments
         return function.call(this, arguments);
     }
 
@@ -246,37 +221,28 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
     }
 
     private boolean isTruthy(Object object) {
-        if (object == null) {
-            return false;
-        }
-        if (object instanceof Boolean) {
-            return (boolean) object;
-        }
+        if (object == null) return false;
+        if (object instanceof Boolean) return (boolean) object;
         return true;
     }
 
-
     private boolean isEqual(Object a, Object b) {
-        if (a == null)
-            return b == null;
+        if (a == null) return b == null;
         return a.equals(b);
     }
 
     private void checkNumber(Token op, Object object) {
-        if (object instanceof Double)
-            return;
+        if (object instanceof Double) return;
         throw new RuntimeError(op, "Operand must be a number");
     }
 
     private void checkNumbers(Token op, Object a, Object b) {
-        if (a instanceof Double && b instanceof Double)
-            return;
-        throw new RuntimeError(op, "Operand must be numbers");
+        if (a instanceof Double && b instanceof Double) return;
+        throw new RuntimeError(op, "Operands must be numbers");
     }
 
     private String stringify(Object object) {
-        if (object == null)
-            return "nil";
+        if (object == null) return "nil";
         if (object instanceof Double) {
             String num = object.toString();
             if (num.endsWith(".0")) {
@@ -286,6 +252,4 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Object> {
         }
         return object.toString();
     }
-
-
-} 
+}
