@@ -2,7 +2,6 @@ package simplf;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import simplf.Expr.Assign;
 import simplf.Expr.Binary;
 import simplf.Expr.Call;
@@ -14,7 +13,6 @@ import simplf.Expr.Unary;
 import simplf.Expr.Variable;
 import simplf.Stmt.Block;
 import simplf.Stmt.Expression;
-import simplf.Stmt.For;
 import simplf.Stmt.Function;
 import simplf.Stmt.If;
 import simplf.Stmt.Print;
@@ -81,30 +79,24 @@ public class Desugar implements Expr.Visitor<Expr>, Stmt.Visitor<Stmt> {
 
     @Override
     public Stmt visitForStmt(Stmt.For stmt) {
-    // Desugaring for the for loop: for(init; cond; incr) { body }
     List<Stmt> body = new ArrayList<>();
 
-    // 1. Add the initializer expression (e.g., i = 0)
     if (stmt.init != null) {
-        body.add(new Stmt.Expression(stmt.init));  // Wrap the init expression in a statement
+        body.add(new Stmt.Expression(stmt.init));  
     }
 
-    // 2. Create the while loop for (cond) { body; incr; }
     Stmt whileBody = stmt.body;
 
-    // Add the increment expression inside the loop body, after the original body
     if (stmt.incr != null) {
         List<Stmt> loopBodyWithIncrement = new ArrayList<>();
-        loopBodyWithIncrement.add(whileBody);  // Add the original loop body
-        loopBodyWithIncrement.add(new Stmt.Expression(stmt.incr));  // Add the increment statement
-        whileBody = new Stmt.Block(loopBodyWithIncrement);  // Make it a block with both body and increment
+        loopBodyWithIncrement.add(whileBody);  
+        loopBodyWithIncrement.add(new Stmt.Expression(stmt.incr));  
+        whileBody = new Stmt.Block(loopBodyWithIncrement);  
     }
 
-    // 3. Create the while loop with condition and the new body
     Stmt whileLoop = new Stmt.While(stmt.cond, whileBody);
     body.add(whileLoop);
 
-    // 4. Return the desugared block (initializer + while loop)
     return new Stmt.Block(body);
 }
 
